@@ -1,0 +1,11 @@
+{
+  "name": "sharecheck",
+  "version": "0.1.0",
+  "description": "See how your link looks on Google, X, Facebook, LinkedIn, and Slack — and how to fix it.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "dev": "node dev.js"
+  },
+  "license": "MIT"
+}
