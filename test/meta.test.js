@@ -33,6 +33,7 @@ test('sparse page yields nulls and empty maps', () => {
 test('ignores meta-looking tags after <body>', () => {
   const m = parseMeta(perfect, BASE);
   assert.equal(m.og.body, undefined);
+  assert.equal(m.og.title, 'Acme Widgets');
 });
 
 test('first occurrence wins on duplicates', () => {
