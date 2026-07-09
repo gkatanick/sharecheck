@@ -73,3 +73,20 @@ test('fix snippets pre-fill from existing page values', () => {
   const f = runRules(m, null).find((x) => x.id === 'missing-og-title');
   assert.ok(f.fixSnippet.includes('My Great Page'));
 });
+
+test('severities match the spec for representative rules', () => {
+  const sev = Object.fromEntries(runRules(EMPTY, null).map((f) => [f.id, f.severity]));
+  assert.equal(sev['missing-title'], 'error');
+  assert.equal(sev['missing-description'], 'error');
+  assert.equal(sev['missing-og-image'], 'error');
+  assert.equal(sev['missing-og-title'], 'warn');
+  assert.equal(sev['missing-twitter-card'], 'warn');
+  assert.equal(sev['missing-canonical'], 'warn');
+  assert.equal(sev['missing-og-type'], 'info');
+  assert.equal(sev['missing-favicon'], 'info');
+
+  const tiny = runRules({ ...EMPTY, og: { image: 'https://x.example/a.png' } }, { loaded: true, width: 150, height: 150 });
+  assert.equal(tiny.find((f) => f.id === 'og-image-too-small').severity, 'error');
+  const mid = runRules({ ...EMPTY, og: { image: 'https://x.example/a.png' } }, { loaded: true, width: 800, height: 400 });
+  assert.equal(mid.find((f) => f.id === 'og-image-small').severity, 'warn');
+});
