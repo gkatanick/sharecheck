@@ -1,4 +1,6 @@
 import { lookup } from 'node:dns/promises';
+import * as http from 'node:http';
+import * as https from 'node:https';
 import { validateTargetUrl, isPrivateIp } from '../src/guard.js';
 
 const MAX_REDIRECTS = 5;
@@ -24,35 +26,39 @@ export default async function handler(req, res) {
       if (!check.ok) return send(400, { error: check.reason });
       const { url } = check;
 
-      // Refuse hostnames that resolve into private address space. (DNS is
-      // re-resolved by fetch below — acceptable TOCTOU window for this tool.)
+      // Resolve DNS exactly once, validate every returned address, then pin
+      // the outgoing connection to that checked address (via a custom
+      // `lookup` passed to http(s).request). This closes the DNS-rebinding
+      // TOCTOU window: the socket can never dial an address that wasn't
+      // checked, because it never re-resolves the hostname.
+      let addrs;
       try {
-        const { address } = await lookup(url.hostname);
-        if (isPrivateIp(address)) return send(400, { error: 'blocked-host' });
+        addrs = await lookup(url.hostname, { all: true });
       } catch {
         return send(502, { error: 'unreachable' });
       }
+      if (addrs.length === 0 || addrs.some((a) => isPrivateIp(a.address))) {
+        return send(400, { error: 'blocked-host' });
+      }
 
-      const response = await fetch(url, {
-        redirect: 'manual',
-        signal: deadline,
-        headers: { 'User-Agent': USER_AGENT, Accept: 'text/html,application/xhtml+xml' },
-      });
+      const response = await issueRequest(url, addrs[0], deadline);
 
-      if ([301, 302, 303, 307, 308].includes(response.status)) {
-        const location = response.headers.get('location');
+      if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
+        const location = response.headers.location;
+        response.resume();
         if (!location) return send(502, { error: 'bad-redirect' });
         current = new URL(location, url).href;
         continue;
       }
 
-      const type = (response.headers.get('content-type') || '').toLowerCase();
+      const type = (response.headers['content-type'] || '').toLowerCase();
       if (!type.includes('text/html') && !type.includes('application/xhtml+xml')) {
+        response.resume();
         return send(415, { error: 'not-html' });
       }
 
-      const html = await readCapped(response.body, MAX_BYTES);
-      return send(200, { finalUrl: url.href, status: response.status, html });
+      const html = await readCapped(response, MAX_BYTES);
+      return send(200, { finalUrl: url.href, status: response.statusCode, html });
     }
     return send(502, { error: 'too-many-redirects' });
   } catch (err) {
@@ -61,26 +67,45 @@ export default async function handler(req, res) {
   }
 }
 
+function issueRequest(url, pinned, deadline) {
+  const transport = url.protocol === 'https:' ? https : http;
+  const options = {
+    hostname: url.hostname,
+    port: url.port || (url.protocol === 'https:' ? 443 : 80),
+    path: url.pathname + url.search,
+    method: 'GET',
+    headers: { 'User-Agent': USER_AGENT, Accept: 'text/html,application/xhtml+xml' },
+    signal: deadline,
+    lookup(host, opts, cb) {
+      // Pin: never re-resolve, always hand back the pre-checked address.
+      if (opts && opts.all) cb(null, [pinned]);
+      else cb(null, pinned.address, pinned.family);
+    },
+  };
+
+  return new Promise((resolve, reject) => {
+    const req = transport.request(options, (response) => resolve(response));
+    req.on('error', reject);
+    req.end();
+  });
+}
+
 async function readCapped(stream, maxBytes) {
-  if (!stream) return '';
-  const reader = stream.getReader();
   const chunks = [];
   let total = 0;
-  while (total < maxBytes) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    total += value.byteLength;
+  try {
+    for await (const chunk of stream) {
+      const remaining = maxBytes - total;
+      const slice = chunk.byteLength > remaining ? chunk.subarray(0, remaining) : chunk;
+      chunks.push(slice);
+      total += slice.byteLength;
+      if (total >= maxBytes) {
+        stream.destroy();
+        break;
+      }
+    }
+  } catch (err) {
+    if (chunks.length === 0) throw err;
   }
-  reader.cancel().catch(() => {});
-  const size = Math.min(total, maxBytes);
-  const buf = new Uint8Array(size);
-  let offset = 0;
-  for (const chunk of chunks) {
-    const slice = chunk.subarray(0, Math.min(chunk.byteLength, size - offset));
-    buf.set(slice, offset);
-    offset += slice.byteLength;
-    if (offset >= size) break;
-  }
-  return new TextDecoder('utf-8', { fatal: false }).decode(buf);
+  return new TextDecoder('utf-8', { fatal: false }).decode(Buffer.concat(chunks, total));
 }

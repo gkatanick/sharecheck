@@ -13,20 +13,25 @@ export function isPrivateIp(ip) {
   const mapped = bare.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
   const v4 = parseIpv4(mapped ? mapped[1] : bare);
   if (v4) {
-    const [a, b] = v4;
+    const [a, b, c] = v4;
     return (
       a === 0 || a === 10 || a === 127 ||
       (a === 169 && b === 254) ||
       (a === 172 && b >= 16 && b <= 31) ||
       (a === 192 && b === 168) ||
-      (a === 100 && b >= 64 && b <= 127)
+      (a === 100 && b >= 64 && b <= 127) ||
+      a >= 224 ||
+      (a === 198 && (b === 18 || b === 19)) ||
+      (a === 192 && b === 0 && c === 0)
     );
   }
   if (bare.includes(':')) {
     return (
       bare === '::' || bare === '::1' ||
       bare.startsWith('fc') || bare.startsWith('fd') ||
-      /^fe[89ab]/.test(bare)
+      /^fe[89ab]/.test(bare) ||
+      bare.startsWith('ff') ||
+      bare.startsWith('2002:')
     );
   }
   return false;
