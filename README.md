@@ -2,7 +2,7 @@
 
 **See how your link looks everywhere it gets shared — and how to fix it.**
 
-[![CI](https://github.com/OWNER/sharecheck/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/sharecheck/actions/workflows/ci.yml)
+[![CI](https://github.com/gkatanick/sharecheck/actions/workflows/ci.yml/badge.svg)](https://github.com/gkatanick/sharecheck/actions/workflows/ci.yml)
 
 **Live demo → https://sharecheck.vercel.app**
 
@@ -47,7 +47,7 @@ your page's own values where possible.
 ## Run it locally
 
 ```bash
-git clone https://github.com/OWNER/sharecheck && cd sharecheck
+git clone https://github.com/gkatanick/sharecheck && cd sharecheck
 npm run dev     # → http://localhost:3000  (no install step — zero dependencies)
 npm test        # run the test suite
 ```
