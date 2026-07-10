@@ -66,3 +66,10 @@ test('decodeEntities passes through unknown entities', () => {
 test('whitespace in title collapses', () => {
   assert.equal(parseMeta('<head><title>  Two\n  Lines  </title></head>', BASE).title, 'Two Lines');
 });
+
+test('handles literal > inside quoted attribute values', () => {
+  const html = '<head><meta property="og:description" content="Save >50% today"><meta property="og:title" content="After"></head>';
+  const m = parseMeta(html, BASE);
+  assert.equal(m.og.description, 'Save >50% today');
+  assert.equal(m.og.title, 'After');
+});

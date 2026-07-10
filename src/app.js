@@ -88,10 +88,8 @@ async function check(rawUrl) {
 
     const meta = parseMeta(data.html, data.finalUrl);
     setStatus('Checking image…');
-    const imageSrc = resolveUrl(meta.twitter.image || meta.og.image || null, data.finalUrl);
-    const imageInfo = /^https:\/\//i.test(meta.og.image || '') || /^https?:\/\//i.test(imageSrc || '')
-      ? await loadImageInfo(imageSrc)
-      : null;
+    const imageSrc = resolveUrl(meta.og.image || null, data.finalUrl);
+    const imageInfo = imageSrc && /^https?:\/\//i.test(imageSrc) ? await loadImageInfo(imageSrc) : null;
 
     renderPreviews(previewsEl, meta, data.finalUrl);
     renderFindings(runRules(meta, imageInfo));

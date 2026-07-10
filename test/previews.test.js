@@ -55,3 +55,8 @@ test('x without twitter:card but with og:image defaults to large card', () => {
   const m = { ...BARE, og: { image: 'https://acme.example/og.png' } };
   assert.equal(effectiveFor('x', m, URL_).large, true);
 });
+
+test('explicit twitter:card=summary stays small even with an image', () => {
+  const m = { ...BARE, og: { image: 'https://acme.example/og.png' }, twitter: { card: 'summary' } };
+  assert.equal(effectiveFor('x', m, URL_).large, false);
+});

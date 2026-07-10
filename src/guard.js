@@ -11,6 +11,14 @@ function parseIpv4(host) {
 export function isPrivateIp(ip) {
   const bare = ip.replace(/^\[|\]$/g, '').toLowerCase();
   const mapped = bare.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+  if (!mapped) {
+    const hexMapped = bare.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+    if (hexMapped) {
+      const hi = parseInt(hexMapped[1], 16);
+      const lo = parseInt(hexMapped[2], 16);
+      return isPrivateIp(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
+    }
+  }
   const v4 = parseIpv4(mapped ? mapped[1] : bare);
   if (v4) {
     const [a, b, c] = v4;

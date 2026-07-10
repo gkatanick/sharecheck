@@ -22,6 +22,21 @@ export function resolveUrl(value, baseUrl) {
   }
 }
 
+function findTagEnd(html, start) {
+  let quote = null;
+  for (let i = start; i < html.length; i++) {
+    const ch = html[i];
+    if (quote) {
+      if (ch === quote) quote = null;
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === '>') {
+      return i;
+    }
+  }
+  return -1;
+}
+
 function parseAttributes(tag) {
   const attrs = {};
   const body = tag.replace(/^<\s*[a-zA-Z][\w-]*/, '').replace(/\/?>?$/, '');
@@ -53,10 +68,14 @@ export function parseMeta(html, baseUrl) {
     meta.title = decodeEntities(titleMatch[1]).replace(/\s+/g, ' ').trim() || null;
   }
 
-  const tagRe = /<(meta|link)\b[^>]*>?/gi;
+  const tagRe = /<(meta|link)\b/gi;
   let m;
   while ((m = tagRe.exec(head)) !== null) {
-    const attrs = parseAttributes(m[0]);
+    const end = findTagEnd(head, m.index);
+    if (end === -1) break;
+    const tag = head.slice(m.index, end + 1);
+    const attrs = parseAttributes(tag);
+    tagRe.lastIndex = end + 1;
     if (m[1].toLowerCase() === 'meta') {
       const key = (attrs.property || attrs.name || '').toLowerCase();
       const content = (attrs.content ?? '').trim();
