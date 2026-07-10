@@ -56,3 +56,66 @@ export function effectiveFor(platform, meta, finalUrl) {
       throw new Error(`Unknown platform: ${platform}`);
   }
 }
+
+// ---------- DOM rendering (browser only below this line) ----------
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+function imageBlock(image, alt) {
+  return image
+    ? `<img class="pv-image" src="${esc(image)}" alt="${esc(alt)}" loading="lazy">`
+    : '<div class="pv-noimage">no image</div>';
+}
+
+const RENDERERS = {
+  google(e) {
+    return `<div class="card-body">
+      <div class="g-url">${e.favicon ? `<img class="g-favicon" src="${esc(e.favicon)}" alt="">` : '<span class="g-favicon"></span>'}<span>${esc(e.domain)}</span></div>
+      <div class="g-title">${esc(e.title)}</div>
+      <div class="g-desc">${esc(e.description) || '<em>Google will improvise a snippet…</em>'}</div>
+    </div>`;
+  },
+  x(e) {
+    return `${imageBlock(e.image, e.title)}<div class="card-body">
+      <div class="pv-domain">${esc(e.domain)}</div>
+      <div class="pv-title">${esc(e.title)}</div>
+      <div class="pv-desc">${esc(e.description)}</div>
+    </div>`;
+  },
+  facebook(e) {
+    return `${imageBlock(e.image, e.title)}<div class="card-body">
+      <div class="pv-domain">${esc(e.domain)}</div>
+      <div class="pv-title">${esc(e.title)}</div>
+      <div class="pv-desc">${esc(e.description)}</div>
+    </div>`;
+  },
+  linkedin(e) {
+    return `${imageBlock(e.image, e.title)}<div class="card-body">
+      <div class="pv-title">${esc(e.title)}</div>
+      <div class="pv-domain">${esc(e.domain)}</div>
+    </div>`;
+  },
+  slack(e) {
+    return `<div class="card-body">
+      <div class="s-site">${e.favicon ? `<img class="s-favicon" src="${esc(e.favicon)}" alt="">` : ''}<span>${esc(e.siteName)}</span></div>
+      <div class="s-title">${esc(e.title)}</div>
+      <div class="pv-desc">${esc(e.description)}</div>
+      ${imageBlock(e.image, e.title)}
+    </div>`;
+  },
+};
+
+const LABELS = { google: 'Google', x: 'X', facebook: 'Facebook', linkedin: 'LinkedIn', slack: 'Slack' };
+
+export function renderPreviews(container, meta, finalUrl) {
+  container.innerHTML = PLATFORMS.map((p) => {
+    const effective = effectiveFor(p, meta, finalUrl);
+    return `<div class="preview-card pv-${p}">
+      <div class="platform-label">${LABELS[p]}</div>
+      ${RENDERERS[p](effective)}
+    </div>`;
+  }).join('');
+}

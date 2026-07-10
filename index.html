@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShareCheck — preview and fix how your links look when shared</title>
+  <meta name="description" content="Paste a URL to see how it renders on Google, X, Facebook, LinkedIn, and Slack — and get copy-paste fixes for broken meta tags.">
+  <meta property="og:title" content="ShareCheck">
+  <meta property="og:description" content="See how your link looks everywhere it gets shared — and how to fix it.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%8E%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>🔎 ShareCheck</h1>
+    <p class="tagline">See how your link looks everywhere it gets shared — and how to fix it.</p>
+  </header>
+
+  <main>
+    <form id="check-form" autocomplete="off">
+      <input id="url-input" type="url" required placeholder="https://your-site.com/page" aria-label="URL to check">
+      <button id="check-button" type="submit">Check</button>
+    </form>
+
+    <div id="status" class="status" hidden></div>
+
+    <section id="results" hidden>
+      <div id="http-banner" class="http-banner" hidden></div>
+      <h2>Previews</h2>
+      <div id="previews" class="previews-grid"></div>
+      <h2>Audit <span id="audit-score"></span></h2>
+      <ul id="findings" class="findings"></ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Free &amp; open source — <a id="repo-link" href="https://github.com/OWNER/sharecheck">GitHub</a> · No tracking, no accounts.</p>
+  </footer>
+
+  <script type="module" src="/src/app.js"></script>
+</body>
+</html>
